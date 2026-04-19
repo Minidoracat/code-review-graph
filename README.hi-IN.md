@@ -197,6 +197,8 @@ code-review-graph register <path>  # मल्टी-रिपो रजिस�
 code-review-graph unregister <id>  # रजिस्ट्री से रिपो हटाएं
 code-review-graph repos            # रजिस्टर्ड रिपॉज़िटरीज़ की सूची
 code-review-graph eval             # मूल्यांकन बेंचमार्क चलाएं
+code-review-graph embed            # एम्बेडिंग वेक्टर्स कंप्यूट / रिफ्रेश (नए रेपो में body enrichment ऑटो-एक्टिव)
+code-review-graph embed --include-body --confirm-reembed  # मौजूदा DB: body enrichment को एक्सप्लिसिट opt-in
 code-review-graph serve            # MCP सर्वर शुरू करें
 ```
 

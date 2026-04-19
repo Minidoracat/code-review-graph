@@ -199,6 +199,8 @@ code-review-graph register <path>  # マルチリポジトリレジストリに�
 code-review-graph unregister <id>  # レジストリからリポジトリを削除
 code-review-graph repos            # 登録済みリポジトリの一覧表示
 code-review-graph eval             # 評価ベンチマークの実行
+code-review-graph embed            # 埋め込みベクトルの計算 / 更新（新規リポジトリはbody enrichmentが自動有効）
+code-review-graph embed --include-body --confirm-reembed  # 既存DB: body enrichmentを明示的にopt-in
 code-review-graph serve            # MCPサーバーの起動
 ```
 
