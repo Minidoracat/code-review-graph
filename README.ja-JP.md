@@ -135,7 +135,7 @@ gitコミットやファイル保存のたびにフックが起動します。�
 | **23言語 + ノートブック** | Python, TypeScript/TSX, JavaScript, Vue, Svelte, Go, Rust, Java, Scala, C#, Ruby, Kotlin, Swift, PHP, Solidity, C/C++, Dart, R, Perl, Lua, Zig, PowerShell, Julia, Jupyter/Databricks (.ipynb) |
 | **影響範囲分析** | 変更によって影響を受ける関数、クラス、ファイルを正確に表示 |
 | **自動更新フック** | ファイル編集やgitコミットのたびに手動操作なしでグラフを更新 |
-| **セマンティック検索** | sentence-transformers、Google Gemini、MiniMax、またはOpenAI互換エンドポイント（本家OpenAI、Azure、new-api、LiteLLM、vLLM、LocalAI）によるオプションのベクトル埋め込み |
+| **セマンティック検索** | sentence-transformers、Google Gemini、MiniMax、またはOpenAI互換エンドポイント（本家OpenAI、Azure、new-api、LiteLLM、vLLM、LocalAI）によるオプションのベクトル埋め込み。関数 body の実装部分を埋め込みます（シグネチャと先頭の docstring / ヘッダーコメントは取り除き、snippet の token 予算を実ロジックに回します）。長 context モデルが「コードが何をしているか」でランキングできます |
 | **インタラクティブ可視化** | D3.js力学レイアウトグラフ。検索、コミュニティ凡例切替、次数スケーリングノード対応 |
 | **ハブ・ブリッジ検出** | 最も接続の多いノードと媒介中心性によるアーキテクチャのボトルネックを発見 |
 | **サプライズスコアリング** | 予期しない結合を検出：コミュニティ間、言語間、周辺からハブへのエッジ |
@@ -289,7 +289,7 @@ base URLがlocalhost（`127.0.0.1`、`localhost`、`0.0.0.0`、`::1`）を指し
 
 > **モデル選択のヒント。** `-preview` / `-beta` / `-exp` 付きのmodel ID（例：`google/gemini-embedding-2-preview`）は長期運用には避けてください。preview モデルは重みが変更される（次元が変わると全ノード re-embed 必須）か、予告なく deprecate される可能性があります。安定版 GA モデル推奨：`text-embedding-3-small` / `text-embedding-3-large`（OpenAI）、`Qwen/Qwen3-Embedding-8B`（vLLM / LocalAI 自前ホスト経由）、または `gemini-embedding-001`（ネイティブ Gemini provider 経由、`GOOGLE_API_KEY` が必要）。
 >
-> また注意：現状 `code-review-graph` は**関数シグネチャのみ**を埋め込みます（ノードあたり約10トークン、例：`"parse_file function (path: str) returns Tree"`）。長 context で関数 body を理解する能力で差をつけるモデル（Gemini 2 や Qwen3-8B の MTEB-code SOTA スコア）は、この入力長では小型モデルとの差がかなり縮まります。Body / docstring 埋め込みはフォローアップ拡張として追跡中です。
+> `code-review-graph` はシグネチャに加えて**関数 body の実装**部分の切り取り片も埋め込みます（シグネチャと先頭の docstring / ヘッダーコメントは取り除き、snippet の token 予算を実ロジックに割り当てます。プロバイダごとの文字数上限：local 700 / google 3000 / minimax 3000 / openai 6000）。長 context モデル（Gemini 2、Qwen3-8B）は「関数が何をしているか」でランク付けでき、名前だけに頼らなくなります。新規リポジトリでは自動で有効；既存 DB はレガシーの signature-only 動作を保持し、`code-review-graph embed --include-body --confirm-reembed` で明示的に opt-in するまで切り替わりません（一度限りの全件 re-embed はクラウドプロバイダで API トークンを消費します。signature-only のままにしたい場合は `CRG_EMBED_INCLUDE_BODY=0`）。
 
 </details>
 
