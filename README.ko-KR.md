@@ -201,6 +201,8 @@ code-review-graph repos            # 등록된 저장소 목록
 code-review-graph eval             # 평가 벤치마크 실행
 code-review-graph embed            # 임베딩 벡터 계산 / 갱신 (신규 repo는 body enrichment 자동 활성화)
 code-review-graph embed --include-body --confirm-reembed  # 기존 DB: body enrichment 명시적 opt-in
+code-review-graph install --auto-embed-hook     # Opt-in: 매 편집 후 embeddings 자동 새로고침 (claude/qoder만, POSIX shell만)
+code-review-graph install --no-auto-embed-hook  # 해당 hook 제거 (idempotent, 사용자 커스텀 엔트리는 보존)
 code-review-graph serve            # MCP 서버 시작
 ```
 
@@ -292,6 +294,8 @@ base URL이 localhost(`127.0.0.1`, `localhost`, `0.0.0.0`, `::1`)를 가리킬 �
 > **모델 선택 팁.** `-preview` / `-beta` / `-exp` 접미사가 붙은 model ID(예: `google/gemini-embedding-2-preview`)는 장기 운영용으로 피하세요. preview 모델은 가중치가 바뀌거나(차원 변경 시 전체 re-embed 필수) 예고 없이 deprecate될 수 있습니다. 안정 GA 모델 권장: `text-embedding-3-small` / `text-embedding-3-large`(OpenAI), `Qwen/Qwen3-Embedding-8B`(vLLM / LocalAI 자체 호스팅 경유), 또는 `gemini-embedding-001`(네이티브 Gemini provider 경유, `GOOGLE_API_KEY` 필요).
 >
 > `code-review-graph`는 시그니처에 더해 **함수 body 구현부** 스니펫도 함께 임베딩합니다(시그니처와 선두 docstring/헤더 주석은 제거하고 snippet 토큰 예산을 실제 로직에 할당. 프로바이더별 문자 예산: local 700 / google 3000 / minimax 3000 / openai 6000). 이제 긴 context 모델(Gemini 2, Qwen3-8B)이 함수 이름만이 아니라 "함수가 무엇을 하는지"로 랭킹할 수 있습니다. 새 레포지토리는 자동으로 활성화; 기존 DB는 레거시 signature-only 동작을 유지하며, `code-review-graph embed --include-body --confirm-reembed`로 명시적 opt-in해야 전환됩니다(일회성 전량 re-embed는 클라우드 프로바이더에서 API 토큰을 소비. signature-only로 유지하려면 `CRG_EMBED_INCLUDE_BODY=0`).
+>
+> **자동 새로고침 hook (opt-in).** `code-review-graph install --auto-embed-hook`을 사용하면 Edit/Write/MultiEdit마다 `update --skip-flows && embed`를 체인으로 실행하는 `PostToolUse` hook이 설치되어, 수동 `embed` 사이에도 signature 임베딩을 최신 상태로 유지합니다. Claude Code / Qoder 전용; POSIX shell 전용 (macOS/Linux의 bash/zsh, Windows의 WSL 또는 git-bash — 네이티브 PowerShell은 후속 버전에서 지원 예정). hook은 매 발동마다 `CRG_EMBED_INCLUDE_BODY=0`을 강제하므로, 이전에 `embed --include-body --confirm-reembed`로 body-mode를 opt-in 했다면 그 sticky flag는 매번 OFF로 리셋됩니다 — body-mode를 유지하려면 opt-in 명령을 다시 실행하세요. `install --no-auto-embed-hook`으로 제거 가능.
 
 </details>
 

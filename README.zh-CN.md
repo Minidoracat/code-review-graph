@@ -199,6 +199,8 @@ code-review-graph repos            # 列出已注册的仓库
 code-review-graph eval             # 运行评估基准测试
 code-review-graph embed            # 计算 / 刷新向量嵌入（新 repo 自动启用 body enrichment）
 code-review-graph embed --include-body --confirm-reembed  # 既有 DB：显式 opt-in body enrichment
+code-review-graph install --auto-embed-hook     # Opt-in：每次编辑后自动刷新 embeddings（仅 claude/qoder，仅 POSIX shell）
+code-review-graph install --no-auto-embed-hook  # 移除该 hook（idempotent；保留使用者自订的其他 entry）
 code-review-graph serve            # 启动 MCP 服务器
 ```
 
@@ -290,6 +292,8 @@ export CRG_OPENAI_BATCH_SIZE=100                        # 某些网关有更严�
 > **模型选择提示。** 避免用 `-preview` / `-beta` / `-exp` 结尾的 model ID（例如 `google/gemini-embedding-2-preview`）做长期使用——preview 模型可能更换权重（维度一变就要全量 re-embed）或被无预警下架。建议改用正式 GA 模型：`text-embedding-3-small` / `text-embedding-3-large`（OpenAI）、`Qwen/Qwen3-Embedding-8B`（经 vLLM / LocalAI 自宿主）、或 `gemini-embedding-001`（经原生 Gemini provider，需要 `GOOGLE_API_KEY`）。
 >
 > `code-review-graph` 也会在签名后面接上截断过的**函数 body 实作**片段（剥除签名与开头的 docstring/header 注释，让 snippet token 留给真正的逻辑而非文档；每家 provider 的字元上限：local 700 / google 3000 / minimax 3000 / openai 6000），长 context 模型（Gemini 2、Qwen3-8B）终于能按「代码做什么」排序而不是只看名字。新 repo 自动开启；既有 DB 保留原本的 signature-only 行为，直到你执行 `code-review-graph embed --include-body --confirm-reembed` 显式 opt-in（一次性全量 re-embed，对云 provider 会花 API token——想留在 signature-only 设 `CRG_EMBED_INCLUDE_BODY=0`）。
+>
+> **自动刷新 hook（opt-in）。** `code-review-graph install --auto-embed-hook` 会写入一个 `PostToolUse` hook，每次 Edit/Write/MultiEdit 后串接跑 `update --skip-flows && embed`，让 signature embeddings 在手动 `embed` 之间保持新鲜。仅支持 Claude Code / Qoder；仅 POSIX shell（macOS/Linux 的 bash/zsh、Windows 上的 WSL 或 git-bash——原生 PowerShell 暂未支持，预定后续版本）。Hook 每次触发都会强制 `CRG_EMBED_INCLUDE_BODY=0`，所以如果你之前用 `embed --include-body --confirm-reembed` opt-in 过 body-mode，那个 sticky flag 会被重置为关闭——想保留 body-mode 就再手动执行一次那条命令。以 `install --no-auto-embed-hook` 移除。
 
 </details>
 
