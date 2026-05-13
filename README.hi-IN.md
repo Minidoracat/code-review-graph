@@ -133,7 +133,7 @@ Build the code review graph for this project
 | **23 भाषाएं + नोटबुक** | Python, TypeScript/TSX, JavaScript, Vue, Svelte, Go, Rust, Java, Scala, C#, Ruby, Kotlin, Swift, PHP, Solidity, C/C++, Dart, R, Perl, Lua, Zig, PowerShell, Julia, Jupyter/Databricks (.ipynb) |
 | **ब्लास्ट-रेडियस विश्लेषण** | दिखाता है कि किसी भी बदलाव से कौन से फ़ंक्शन, क्लासेज़, और फ़ाइलें प्रभावित होती हैं |
 | **ऑटो-अपडेट हुक्स** | बिना मैन्युअल हस्तक्षेप के हर फ़ाइल एडिट और git कमिट पर ग्राफ अपडेट होता है |
-| **सिमेंटिक सर्च** | sentence-transformers, Google Gemini, MiniMax, या किसी भी OpenAI-compatible एंडपॉइंट (असली OpenAI, Azure, new-api, LiteLLM, vLLM, LocalAI) के ज़रिए वैकल्पिक वेक्टर एम्बेडिंग. फ़ंक्शन body का implementation हिस्सा एम्बेड होता है (signature और शुरुआती docstring/header comments हटा दिए जाते हैं ताकि snippet का token budget real logic पर खर्च हो, documentation पर नहीं). long-context मॉडल्स "कोड क्या करता है" के हिसाब से रैंक कर सकते हैं |
+| **सिमेंटिक सर्च** | sentence-transformers, Google Gemini, MiniMax, या किसी भी OpenAI-compatible एंडपॉइंट (असली OpenAI, Azure, new-api, LiteLLM, vLLM, LocalAI) के ज़रिए वैकल्पिक वेक्टर एम्बेडिंग |
 | **इंटरैक्टिव विज़ुअलाइज़ेशन** | सर्च, कम्युनिटी लीजेंड टॉगल, और डिग्री-स्केल्ड नोड्स के साथ D3.js फ़ोर्स-डायरेक्टेड ग्राफ |
 | **हब और ब्रिज डिटेक्शन** | betweenness centrality के ज़रिए सबसे ज़्यादा कनेक्टेड नोड्स और आर्किटेक्चरल चोकपॉइंट्स खोजें |
 | **सरप्राइज़ स्कोरिंग** | अप्रत्याशित कपलिंग का पता लगाएं: क्रॉस-कम्युनिटी, क्रॉस-लैंग्वेज, पेरीफ़ेरल-टू-हब एज़ेज़ |
@@ -197,10 +197,6 @@ code-review-graph register <path>  # मल्टी-रिपो रजिस�
 code-review-graph unregister <id>  # रजिस्ट्री से रिपो हटाएं
 code-review-graph repos            # रजिस्टर्ड रिपॉज़िटरीज़ की सूची
 code-review-graph eval             # मूल्यांकन बेंचमार्क चलाएं
-code-review-graph embed            # एम्बेडिंग वेक्टर्स कंप्यूट / रिफ्रेश (नए रेपो में body enrichment ऑटो-एक्टिव)
-code-review-graph embed --include-body --confirm-reembed  # मौजूदा DB: body enrichment को एक्सप्लिसिट opt-in
-code-review-graph install --auto-embed-hook     # Opt-in: हर edit के बाद embeddings ऑटो-रिफ्रेश (सिर्फ़ claude/qoder, सिर्फ़ POSIX shell)
-code-review-graph install --no-auto-embed-hook  # उस hook को हटाएँ (idempotent; user-customised entries को preserve करता है)
 code-review-graph serve            # MCP सर्वर शुरू करें
 ```
 
@@ -291,9 +287,7 @@ export CRG_OPENAI_BATCH_SIZE=100                        # टाइट बैच
 
 > **मॉडल चुनने की सलाह।** लंबे समय के उपयोग के लिए `-preview` / `-beta` / `-exp` वाले model ID (जैसे `google/gemini-embedding-2-preview`) से बचें — preview मॉडल्स के वज़न बदल सकते हैं (डाइमेंशन बदलने पर पूरा re-embed करना पड़ेगा) या बिना नोटिस deprecate हो सकते हैं। स्टेबल GA मॉडल्स की सलाह दी जाती है: `text-embedding-3-small` / `text-embedding-3-large` (OpenAI), `Qwen/Qwen3-Embedding-8B` (vLLM / LocalAI सेल्फ-होस्टेड के ज़रिए), या `gemini-embedding-001` (नेटिव Gemini provider के ज़रिए, `GOOGLE_API_KEY` चाहिए).
 >
-> `code-review-graph` signature के साथ-साथ **फ़ंक्शन body के implementation** हिस्से का truncated snippet भी एम्बेड करता है (signature और शुरुआती docstring/header comments हटा दिए जाते हैं ताकि snippet token budget real logic पर जाए; प्रति प्रोवाइडर char budget: local 700 / google 3000 / minimax 3000 / openai 6000). अब long-context मॉडल्स (Gemini 2, Qwen3-8B) फ़ंक्शन के नाम के बजाय "वह क्या करता है" के आधार पर रैंक कर सकते हैं। नए रेपो में यह अपने आप active हो जाता है; मौजूदा DB legacy signature-only व्यवहार रखते हैं जब तक आप `code-review-graph embed --include-body --confirm-reembed` से opt-in नहीं करते (एक बार का पूरा re-embed क्लाउड प्रोवाइडर्स पर API tokens खर्च कर सकता है — signature-only पर रहने के लिए `CRG_EMBED_INCLUDE_BODY=0` सेट करें).
->
-> **ऑटो-रिफ्रेश hook (opt-in).** `code-review-graph install --auto-embed-hook` एक `PostToolUse` hook लिखता है जो हर Edit/Write/MultiEdit के बाद `update --skip-flows && embed` को chain करके चलाता है, जिससे manual `embed` runs के बीच signature embeddings fresh रहती हैं। सिर्फ़ Claude Code / Qoder पर; सिर्फ़ POSIX shells (macOS/Linux पर bash/zsh, Windows पर WSL या git-bash — native PowerShell follow-up version के लिए defer किया गया)। hook हर बार चलने पर `CRG_EMBED_INCLUDE_BODY=0` force करता है, इसलिए अगर आपने पहले `embed --include-body --confirm-reembed` से body-mode में opt-in किया था, वह sticky flag हर बार OFF reset हो जाएगा — body-mode preserve रखना है तो opt-in command दोबारा चलाएँ। `install --no-auto-embed-hook` से हटाएँ।
+> साथ ही ध्यान दें: वर्तमान में `code-review-graph` केवल **फ़ंक्शन सिग्नेचर** एम्बेड करता है (प्रति नोड ~10 tokens, जैसे `"parse_file function (path: str) returns Tree"`). जिन मॉडल्स की क्वालिटी का मुख्य source लंबे context में function body को समझना है (जैसे Gemini 2 या Qwen3-8B के MTEB-code SOTA स्कोर्स), वे इस इनपुट लंबाई पर छोटे मॉडल्स से कम अंतर दिखाएंगे। Body / docstring एम्बेडिंग को फ़ॉलो-अप एन्हांसमेंट के रूप में ट्रैक किया जा रहा है।
 
 </details>
 
